@@ -1,0 +1,162 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Points Tracker (Phillip & Carlo)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: #e6f0ff;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    .tracker {
+      background: #111a2e;
+      border: 1px solid rgba(110, 231, 255, 0.2);
+      border-radius: 18px;
+      padding: 20px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    h2 {
+      margin-bottom: 10px;
+      color: #6ee7ff;
+    }
+    .points {
+      font-size: 60px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    input {
+      width: 80%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    button {
+      background: #1b335f;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #27497d; }
+    .meta { font-size: 13px; color: #9fb3cc; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tracker" id="phillip">
+      <h2>Phillip</h2>
+      <div class="points" id="points-phillip">0</div>
+      <input type="number" id="input-phillip" placeholder="Subtract points" />
+      <div>
+        <button onclick="subtractPoints('phillip')">Subtract</button>
+        <button onclick="resetPoints('phillip')">Reset</button>
+      </div>
+      <div class="meta">
+        Adds +15 every Monday 1:00 AM<br>
+        <span id="nextRun-phillip"></span>
+      </div>
+    </div>
+
+    <div class="tracker" id="carlo">
+      <h2>Carlo</h2>
+      <div class="points" id="points-carlo">0</div>
+      <input type="number" id="input-carlo" placeholder="Subtract points" />
+      <div>
+        <button onclick="subtractPoints('carlo')">Subtract</button>
+        <button onclick="resetPoints('carlo')">Reset</button>
+      </div>
+      <div class="meta">
+        Adds +15 every Monday 1:00 AM<br>
+        <span id="nextRun-carlo"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const users = ['phillip', 'carlo'];
+
+    function loadState(name) {
+      const key = `points_${name}`;
+      const data = localStorage.getItem(key);
+      if (!data) {
+        const init = { points: 15, lastUpdate: Date.now() };
+        localStorage.setItem(key, JSON.stringify(init));
+        return init;
+      }
+      return JSON.parse(data);
+    }
+
+    function saveState(name, state) {
+      localStorage.setItem(`points_${name}`, JSON.stringify(state));
+    }
+
+    function nextMonday1AM() {
+      const d = new Date();
+      d.setHours(1, 0, 0, 0);
+      d.setDate(d.getDate() + ((8 - d.getDay()) % 7));
+      return d;
+    }
+
+    function checkAndAddWeekly(name) {
+      const state = loadState(name);
+      const now = new Date();
+      const last = new Date(state.lastUpdate);
+      if (now.getDay() === 1 && now.getHours() >= 1 && last.getDay() !== 1) {
+        state.points += 15;
+        state.lastUpdate = now.getTime();
+        saveState(name, state);
+      }
+      updateUI(name, state);
+    }
+
+    function subtractPoints(name) {
+      const input = document.getElementById(`input-${name}`);
+      const val = parseInt(input.value);
+      if (isNaN(val) || val <= 0) return;
+      const state = loadState(name);
+      state.points = Math.max(0, state.points - val);
+      saveState(name, state);
+      updateUI(name, state);
+      input.value = '';
+    }
+
+    function resetPoints(name) {
+      const state = { points: 15, lastUpdate: Date.now() };
+      saveState(name, state);
+      updateUI(name, state);
+    }
+
+    function updateUI(name, state) {
+      document.getElementById(`points-${name}`).textContent = state.points;
+      document.getElementById(`nextRun-${name}`).textContent = 'Next add: ' + nextMonday1AM().toLocaleString();
+    }
+
+    function init() {
+      users.forEach(name => {
+        checkAndAddWeekly(name);
+        setInterval(() => checkAndAddWeekly(name), 60000);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
